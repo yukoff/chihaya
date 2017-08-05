@@ -8,8 +8,9 @@ import (
 
 func createNew() s.PeerStore {
 	ps, err := New(Config{
-		Host: "localhost",
-		Port: "6379",
+		Host:      "localhost",
+		Port:      "6379",
+		KeyPrefix: "test:",
 	})
 	if err != nil {
 		panic(err)
