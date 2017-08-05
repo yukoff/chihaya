@@ -55,9 +55,9 @@ func (r *Run) Start(ps storage.PeerStore) error {
 	if ps == nil {
 		ps, err = storage.NewPeerStore(cfg.Storage.Name, cfg.Storage.Config)
 		if err != nil {
-			return errors.New("failed to create storage: " + err.Error())
+			return errors.New("failed to create " + cfg.Storage.Name + " storage: " + err.Error())
 		}
-		log.Info("started storage", ps.LogFields())
+		log.Info("started "+cfg.Storage.Name+" storage", ps.LogFields())
 	}
 	r.peerStore = ps
 
