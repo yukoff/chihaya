@@ -5,6 +5,8 @@ import (
 	"net"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	redigo "github.com/garyburd/redigo/redis"
 
 	"github.com/chihaya/chihaya/bittorrent"
