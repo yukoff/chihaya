@@ -3,6 +3,7 @@ package redis
 import (
 	"encoding/binary"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -217,6 +218,20 @@ func New(provided Config) (storage.PeerStore, error) {
 	// Start a goroutine for garbage collection.
 
 	// Start a goroutine for updating our cached system clock.
+	ps.wg.Add(1)
+	go func() {
+		defer ps.wg.Done()
+		t := time.NewTicker(1 * time.Second)
+		for {
+			select {
+			case <-ps.closed:
+				t.Stop()
+				return
+			case now := <-t.C:
+				ps.setClock(now.UnixNano())
+			}
+		}
+	}()
 
 	// Start a goroutine for reporting statistics to Prometheus.
 
@@ -242,6 +257,11 @@ type peerStore struct {
 	gcValidity       int
 	seederKeyPrefix  string
 	leecherKeyPrefix string
+
+	// clock stores the current time nanoseconds, updated every second.
+	// Must be accessed atomically!
+	clock int64
+	wg    sync.WaitGroup
 }
 
 var _ storage.PeerStore = &peerStore{}
