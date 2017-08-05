@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/chihaya/chihaya/frontend/http"
 	"github.com/chihaya/chihaya/frontend/udp"
 	"github.com/chihaya/chihaya/middleware"
@@ -17,6 +15,7 @@ import (
 	// Imported to register as Storage Drivers.
 	_ "github.com/chihaya/chihaya/storage/memory"
 	_ "github.com/chihaya/chihaya/storage/memorybysubnet"
+	_ "github.com/chihaya/chihaya/storage/redis"
 )
 
 type hookConfig struct {

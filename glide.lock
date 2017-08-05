@@ -9,6 +9,11 @@ imports:
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
+- name: github.com/garyburd/redigo
+  version: 9e66b83d15a259978be267d0b61838c42c3904e3
+  subpackages:
+  - internal
+  - redis
 - name: github.com/golang/protobuf
   version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
   subpackages:
@@ -47,6 +52,8 @@ imports:
   version: e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2
   subpackages:
   - xfs
+- name: github.com/rafaeljusto/redigomock
+  version: 7ae0511314e9946bb0c87d6d485169ab2467a290
 - name: github.com/SermoDigital/jose
   version: f6df55f235c24f236d11dbcf665249a59ac2021f
   subpackages:

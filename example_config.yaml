@@ -67,6 +67,7 @@ chihaya:
 
   # This block defines configuration used for the storage of peer data.
   storage:
+    # Comment out one of these types to choose storage type
     name: memory
     config:
       # The frequency which stale peers are removed.
@@ -79,6 +80,16 @@ chihaya:
       # The number of partitions data will be divided into in order to provide a
       # higher degree of parallelism.
       shard_count: 1024
+    # name: redis
+    # config:
+    #   key_prefix: "nm:"
+    #   instance: 0
+    #   max_numwant: 100
+    #   max_idle: 100
+    #   host: 127.0.0.1
+    #   port: 6379
+    #   gc_interval: 15m
+    #   peer_liftetime: 15m
 
       # The interval at which metrics about the number of infohashes and peers
       # are collected and posted to Prometheus.
