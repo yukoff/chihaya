@@ -24,7 +24,7 @@ var testPeers = []struct {
 }{
 	{bittorrent.Peer{
 		ID:   bittorrent.PeerIDFromString("12345678912345678912"),
-		IP:   net.IP("112.71.10.240"),
+		IP:   bittorrent.IP{IP: net.IP("112.71.10.240")},
 		Port: 7002},
 		bittorrent.InfoHashFromString("12345678912345678912"), 0,
 		[]bittorrent.Peer{},
@@ -37,12 +37,12 @@ var testPeers = []struct {
 	},
 	{bittorrent.Peer{
 		ID:   bittorrent.PeerIDFromString("#!@#$%^$*()&*#$*~al:"),
-		IP:   net.IP("10:71:10:1A:2B"),
+		IP:   bittorrent.IP{IP: net.IP("10:71:10:1A:2B")},
 		Port: 1111},
 		bittorrent.InfoHashFromString("4:test3i:123:er123rt"), 1,
 		[]bittorrent.Peer{bittorrent.Peer{
 			ID:   bittorrent.PeerIDFromString("totallydifferent1234"),
-			IP:   net.IP("XX:71:10:1A:2X"),
+			IP:   bittorrent.IP{IP: net.IP("XX:71:10:1A:2X")},
 			Port: 1234}},
 		bittorrent.Peer{},
 		nil,
@@ -50,7 +50,7 @@ var testPeers = []struct {
 		2,
 	}, {bittorrent.Peer{
 		ID:   bittorrent.PeerIDFromString("////////////////////"),
-		IP:   net.IP("192.168.0.2"),
+		IP:   bittorrent.IP{IP: net.IP("192.168.0.2")},
 		Port: 12356},
 		bittorrent.InfoHashFromString("////////////////////"), 0,
 		[]bittorrent.Peer{},
