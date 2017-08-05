@@ -320,25 +320,25 @@ func (ps *peerStore) PutSeeder(infoHash bittorrent.InfoHash, p bittorrent.Peer) 
 	panicIfClosed(ps.closed)
 
 	pk := newPeerKey(p)
-	return addPeer(ps, infoHash, ps.seederKeyPrefix+ipType(p.IP), pk)
+	return addPeer(ps, infoHash, ps.seederKeyPrefix+ipType(p.IP.IP), pk)
 }
 
 func (ps *peerStore) DeleteSeeder(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
 	panicIfClosed(ps.closed)
 	pk := newPeerKey(p)
-	return removePeers(ps, infoHash, ps.seederKeyPrefix+ipType(p.IP), pk)
+	return removePeers(ps, infoHash, ps.seederKeyPrefix+ipType(p.IP.IP), pk)
 }
 
 func (ps *peerStore) PutLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
 	panicIfClosed(ps.closed)
 	pk := newPeerKey(p)
-	return addPeer(ps, infoHash, ps.leecherKeyPrefix+ipType(p.IP), pk)
+	return addPeer(ps, infoHash, ps.leecherKeyPrefix+ipType(p.IP.IP), pk)
 }
 
 func (ps *peerStore) DeleteLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
 	panicIfClosed(ps.closed)
 	pk := newPeerKey(p)
-	return removePeers(ps, infoHash, ps.leecherKeyPrefix+ipType(p.IP), pk)
+	return removePeers(ps, infoHash, ps.leecherKeyPrefix+ipType(p.IP.IP), pk)
 }
 
 func (ps *peerStore) GraduateLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
@@ -363,30 +363,30 @@ func (ps *peerStore) AnnouncePeers(infoHash bittorrent.InfoHash, seeder bool, nu
 	}
 
 	if seeder {
-		peers, err = getPeers(ps, infoHash, ps.leecherKeyPrefix+ipType(announcer.IP), numWant, peers, bittorrent.Peer{})
+		peers, err = getPeers(ps, infoHash, ps.leecherKeyPrefix+ipType(announcer.IP.IP), numWant, peers, bittorrent.Peer{})
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		peers, err = getPeers(ps, infoHash, ps.seederKeyPrefix+ipType(announcer.IP), numWant, peers, bittorrent.Peer{})
+		peers, err = getPeers(ps, infoHash, ps.seederKeyPrefix+ipType(announcer.IP.IP), numWant, peers, bittorrent.Peer{})
 		if err != nil {
 			return nil, err
 		}
 		if len(peers) < numWant {
-			peers, err = getPeers(ps, infoHash, ps.leecherKeyPrefix+ipType(announcer.IP), numWant, peers, announcer)
+			peers, err = getPeers(ps, infoHash, ps.leecherKeyPrefix+ipType(announcer.IP.IP), numWant, peers, announcer)
 		}
 	}
 	return peers, nil
 }
 
 func (ps *peerStore) ScrapeSwarm(infoHash bittorrent.InfoHash, addressFamily bittorrent.AddressFamily) (resp bittorrent.Scrape) {
-	v6 := false
 	panicIfClosed(ps.closed)
 
 	ipType := ipv4
-	if v6 {
+	if addressFamily == bittorrent.IPv6 {
 		ipType = ipv6
 	}
+
 	complete, err := getPeersLength(ps, infoHash, ps.seederKeyPrefix+ipType)
 	if err != nil {
 		return
