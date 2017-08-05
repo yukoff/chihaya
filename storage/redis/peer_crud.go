@@ -1,23 +1,13 @@
 package redis
 
 import (
-	"encoding/binary"
 	"fmt"
-	"net"
 	"time"
 
 	redigo "github.com/garyburd/redigo/redis"
 
 	"github.com/chihaya/chihaya/bittorrent"
 )
-
-func decodePeerKey(pk string) bittorrent.Peer {
-	return bittorrent.Peer{
-		ID:   bittorrent.PeerIDFromString(string(pk[:20])),
-		Port: binary.BigEndian.Uint16([]byte(pk[20:22])),
-		IP:   net.IP(pk[22:]),
-	}
-}
 
 // Adds an expiry to the set, that self deletes if not refreshed
 func addPeer(s *peerStore, infoHash bittorrent.InfoHash, peerType string, pk serializedPeer) error {
@@ -62,7 +52,8 @@ func getPeers(s *peerStore, infoHash bittorrent.InfoHash, peerType string, numWa
 		if numWant == len(peers) {
 			break
 		}
-		decodedPeer := decodePeerKey(p)
+		pk := serializedPeer(p)
+		decodedPeer := decodePeerKey(pk)
 		if decodedPeer.Equal(excludePeers) {
 			continue
 		}

@@ -9,6 +9,7 @@ import (
 	redigo "github.com/garyburd/redigo/redis"
 
 	"github.com/chihaya/chihaya/bittorrent"
+	"github.com/chihaya/chihaya/pkg/log"
 	"github.com/chihaya/chihaya/storage"
 )
 
@@ -19,7 +20,7 @@ const Name = "redis"
 const (
 	defaultPrometheusReportingInterval = time.Second * 1
 	defaultGarbageCollectionInterval   = time.Minute * 3
-	defaultKeyPrefix                   = nil
+	defaultKeyPrefix                   = ""
 	defaultInstance                    = 0
 	defaultMaxNumWant                  = 100
 	defaultMaxIdle                     = 100
@@ -151,7 +152,7 @@ func (cfg Config) Validate() Config {
 		})
 	}
 
-	if cfg.Port <= 0 {
+	if cfg.Port == "" {
 		validcfg.Port = defaultPort
 		log.Warn("falling back to default configuration", log.Fields{
 			"name":     Name + ".Port",
@@ -203,6 +204,7 @@ func New(provided Config) (storage.PeerStore, error) {
 
 	ps := &peerStore{
 		cfg:              cfg,
+		swarms:           make(map[bittorrent.InfoHash]swarm),
 		connPool:         &pool,
 		closed:           make(chan struct{}),
 		maxNumWant:       cfg.MaxNumWant,
@@ -231,6 +233,7 @@ type swarm struct {
 
 type peerStore struct {
 	cfg              Config
+	swarms           map[bittorrent.InfoHash]swarm
 	connPool         *redigo.Pool
 	closed           chan struct{}
 	maxNumWant       int
@@ -293,38 +296,38 @@ func ipType(ip net.IP) string {
 	return ipv4
 }
 
-func (s *peerStore) PutSeeder(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
-	panicIfClosed(s.closed)
+func (ps *peerStore) PutSeeder(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
+	panicIfClosed(ps.closed)
 
 	pk := newPeerKey(p)
-	return addPeer(s, infoHash, s.seederKeyPrefix+ipType(p.IP), pk)
+	return addPeer(ps, infoHash, ps.seederKeyPrefix+ipType(p.IP), pk)
 }
 
-func (s *peerStore) DeleteSeeder(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
-	panicIfClosed(s.closed)
+func (ps *peerStore) DeleteSeeder(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
+	panicIfClosed(ps.closed)
 	pk := newPeerKey(p)
-	return removePeers(s, infoHash, s.seederKeyPrefix+ipType(p.IP), pk)
+	return removePeers(ps, infoHash, ps.seederKeyPrefix+ipType(p.IP), pk)
 }
 
-func (s *peerStore) PutLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
-	panicIfClosed(s.closed)
+func (ps *peerStore) PutLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
+	panicIfClosed(ps.closed)
 	pk := newPeerKey(p)
-	return addPeer(s, infoHash, s.leecherKeyPrefix+ipType(p.IP), pk)
+	return addPeer(ps, infoHash, ps.leecherKeyPrefix+ipType(p.IP), pk)
 }
 
-func (s *peerStore) DeleteLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
-	panicIfClosed(s.closed)
+func (ps *peerStore) DeleteLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
+	panicIfClosed(ps.closed)
 	pk := newPeerKey(p)
-	return removePeers(s, infoHash, s.leecherKeyPrefix+ipType(p.IP), pk)
+	return removePeers(ps, infoHash, ps.leecherKeyPrefix+ipType(p.IP), pk)
 }
 
-func (s *peerStore) GraduateLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
-	panicIfClosed(s.closed)
-	err := s.PutSeeder(infoHash, p)
+func (ps *peerStore) GraduateLeecher(infoHash bittorrent.InfoHash, p bittorrent.Peer) error {
+	panicIfClosed(ps.closed)
+	err := ps.PutSeeder(infoHash, p)
 	if err != nil {
 		return err
 	}
-	err = s.DeleteLeecher(infoHash, p)
+	err = ps.DeleteLeecher(infoHash, p)
 	if err != nil {
 		return err
 	}
@@ -333,42 +336,43 @@ func (s *peerStore) GraduateLeecher(infoHash bittorrent.InfoHash, p bittorrent.P
 
 // Announce as many peers as possible based on the announcer being
 // a seeder or leecher
-func (s *peerStore) AnnouncePeers(infoHash bittorrent.InfoHash, seeder bool, numWant int, announcer bittorrent.Peer) (peers []bittorrent.Peer, err error) {
-	panicIfClosed(s.closed)
-	if numWant > s.maxNumWant {
-		numWant = s.maxNumWant
+func (ps *peerStore) AnnouncePeers(infoHash bittorrent.InfoHash, seeder bool, numWant int, announcer bittorrent.Peer) (peers []bittorrent.Peer, err error) {
+	panicIfClosed(ps.closed)
+	if numWant > ps.maxNumWant {
+		numWant = ps.maxNumWant
 	}
 
 	if seeder {
-		peers, err = getPeers(s, infoHash, s.leecherKeyPrefix+ipType(announcer.IP), numWant, peers, bittorrent.Peer{})
+		peers, err = getPeers(ps, infoHash, ps.leecherKeyPrefix+ipType(announcer.IP), numWant, peers, bittorrent.Peer{})
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		peers, err = getPeers(s, infoHash, s.seederKeyPrefix+ipType(announcer.IP), numWant, peers, bittorrent.Peer{})
+		peers, err = getPeers(ps, infoHash, ps.seederKeyPrefix+ipType(announcer.IP), numWant, peers, bittorrent.Peer{})
 		if err != nil {
 			return nil, err
 		}
 		if len(peers) < numWant {
-			peers, err = getPeers(s, infoHash, s.leecherKeyPrefix+ipType(announcer.IP), numWant, peers, announcer)
+			peers, err = getPeers(ps, infoHash, ps.leecherKeyPrefix+ipType(announcer.IP), numWant, peers, announcer)
 		}
 	}
 	return peers, nil
 }
 
-func (s *peerStore) ScrapeSwarm(infoHash bittorrent.InfoHash, v6 bool) (resp bittorrent.Scrape) {
-	panicIfClosed(s.closed)
+func (ps *peerStore) ScrapeSwarm(infoHash bittorrent.InfoHash, addressFamily bittorrent.AddressFamily) (resp bittorrent.Scrape) {
+	v6 := false
+	panicIfClosed(ps.closed)
 
 	ipType := ipv4
 	if v6 {
 		ipType = ipv6
 	}
-	complete, err := getPeersLength(s, infoHash, s.seederKeyPrefix+ipType)
+	complete, err := getPeersLength(ps, infoHash, ps.seederKeyPrefix+ipType)
 	if err != nil {
 		return
 	}
 	resp.Complete = uint32(complete)
-	incomplete, err := getPeersLength(s, infoHash, s.leecherKeyPrefix+ipType)
+	incomplete, err := getPeersLength(ps, infoHash, ps.leecherKeyPrefix+ipType)
 	if err != nil {
 		return
 	}
@@ -376,10 +380,10 @@ func (s *peerStore) ScrapeSwarm(infoHash bittorrent.InfoHash, v6 bool) (resp bit
 	return
 }
 
-func (s *peerStore) Stop() <-chan error {
+func (ps *peerStore) Stop() <-chan error {
 	toReturn := make(chan error)
 	go func() {
-		close(s.closed)
+		close(ps.closed)
 		close(toReturn)
 	}()
 	return toReturn
