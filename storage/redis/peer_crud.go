@@ -8,10 +8,7 @@ import (
 
 	"github.com/chihaya/chihaya/bittorrent"
 	"github.com/chihaya/chihaya/pkg/log"
-	"github.com/chihaya/chihaya/storage"
 )
-
-type Dict map[int]interface{}
 
 // Adds an expiry to the set, that self deletes if not refreshed
 func addPeer(s *peerStore, infoHash bittorrent.InfoHash, peerType string, pk serializedPeer) error {
@@ -45,11 +42,11 @@ func removePeers(s *peerStore, infoHash bittorrent.InfoHash, peerType string, pk
 	// res, _ := json.Marshal(data)
 	// log.Info(fmt.Sprintf("* Removed:\n%s\n", string(res)))
 	// log.Info(fmt.Sprintf("* Removed:\n%+v\n", removed))
-	// log.Info(fmt.Sprintf("  ** Removed:\n%v, %T\n", removed, removed))
-	if removed == nil || removed == int64(0) {
-		// log.Info(fmt.Sprintf(">>> Got ya! \n%+v\n", removed))
-		return storage.ErrResourceDoesNotExist
-	}
+	log.Info(fmt.Sprintf("* Removed:\n%v, %T\n", removed, removed))
+	// if removed == nil || removed == int64(0) {
+	// 	// log.Info(fmt.Sprintf(">>> Got ya! \n%+v\n", removed))
+	// 	return storage.ErrResourceDoesNotExist
+	// }
 	return nil
 }
 
