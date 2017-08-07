@@ -224,6 +224,10 @@ type swarm struct {
 }
 
 type peerStore struct {
+	// According to the sync/atomic docs, "The first word in a global variable or
+	// in an allocated struct or slice can be relied upon to be 64-bit aligned."
+	// Adding the 4 byte padding below does the trick.
+	_      [4]byte
 	cfg    Config
 	shards []*peerShard
 

@@ -11,8 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/chihaya/chihaya/bittorrent"
 	"github.com/chihaya/chihaya/pkg/log"
 	"github.com/chihaya/chihaya/storage"
@@ -264,6 +262,10 @@ func (s swarm) lenLeechers() (i int) {
 }
 
 type peerStore struct {
+	// According to the sync/atomic docs, "The first word in a global variable or
+	// in an allocated struct or slice can be relied upon to be 64-bit aligned."
+	// Adding the 4 byte padding below does the trick.
+	_        [4]byte
 	cfg      Config
 	ipv4Mask net.IPMask
 	ipv6Mask net.IPMask
